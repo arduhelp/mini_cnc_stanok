@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Малювання ліній та G-код</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        canvas {
+            border: 1px solid black;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px;
+            font-size: 16px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="drawingCanvas" width="200" height="200"></canvas>
+<button id="clearCanvas">Очистити</button>
+<pre id="gCodeOutput"></pre>
+
+<script>
+    const canvas = document.getElementById('drawingCanvas');
+    const ctx = canvas.getContext('2d');
+    const points = [];
+
+    canvas.addEventListener('click', (event) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = Math.min(Math.round(event.clientX - rect.left), 170); // Витягуємо X координату з обмеженням
+        const y = Math.min(Math.round(event.clientY - rect.top), 170);  // Витягуємо Y координату з обмеженням
+        
+        if (points.length > 0) {
+            const lastPoint = points[points.length - 1];
+            let newX = x;
+            let newY = y;
+
+            // Вирівнюємо координати для створення лінії
+            if (Math.abs(newX - lastPoint.x) > Math.abs(newY - lastPoint.y)) {
+                newY = lastPoint.y; // Залишаємо Y координату такою ж
+            } else if (Math.abs(newX - lastPoint.x) < Math.abs(newY - lastPoint.y)) {
+                newX = lastPoint.x; // Залишаємо X координату такою ж
+            } else {
+                const slope = (newY - lastPoint.y) / (newX - lastPoint.x);
+                if (slope === 1) {
+                    newY = lastPoint.y + (newX - lastPoint.x); // 45 градусів вгору
+                } else if (slope === -1) {
+                    newY = lastPoint.y - (newX - lastPoint.x); // 45 градусів вниз
+                }
+            }
+
+            points.push({ x: newX, y: newY }); // Додаємо нову точку
+        } else {
+            points.push({ x, y }); // Додаємо першу точку
+        }
+
+        drawLines();
+        updateGCode(); // Оновлюємо G-код після кожного клацання
+    });
+
+    function drawLines() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Очищуємо полотно
+        ctx.beginPath();
+        for (let i = 0; i < points.length; i++) {
+            const { x, y } = points[i];
+            if (i === 0) {
+                ctx.moveTo(x, y); // Переміщуємося до першої точки
+            } else {
+                ctx.lineTo(x, y); // Малюємо лінію до наступної точки
+            }
+        }
+        ctx.stroke();
+    }
+
+    function updateGCode() {
+        let gCodeArray = 'String gCodeArray[] = {\n'; // Початок G-коду
+
+        for (let i = 0; i < points.length; i++) {
+            const { x, y } = points[i];
+            gCodeArray += `  "G1 X${x} Y${170 - y}",\n`; // Формуємо рядок G-коду
+        }
+        
+        gCodeArray += '};'; // Завершуємо G-код
+        document.getElementById('gCodeOutput').textContent = gCodeArray; // Виводимо G-код у рядку
+    }
+
+    document.getElementById('clearCanvas').addEventListener('click', () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Очищуємо полотно
+        points.length = 0; // Очищуємо масив точок
+        document.getElementById('gCodeOutput').textContent = ''; // Очищаємо G-код
+    });
+</script>
+
+</body>
+</html>
