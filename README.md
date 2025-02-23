@@ -6,4 +6,6 @@
 
 ---
 тут g-code генератор: https://github.com/arduhelp/mini_cnc_stanok/tree/main/cnc_stanok
+---
 тут код для ардуіно: https://github.com/arduhelp/mini_cnc_stanok/tree/main/mini_cnc_arduino
+---
